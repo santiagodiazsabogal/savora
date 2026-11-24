@@ -50,7 +50,18 @@ jobs:
         # Pages sirve 404.html cuando la ruta no existe como archivo. Al copiar
         # index.html encima, cualquier ruta profunda (/recipes, /market...) carga
         # la app y react-router resuelve del lado del cliente.
+        # Nota: ese fallback responde con estado HTTP 404 aunque la app sí cargue.
         run: cp dist/index.html dist/404.html
+
+      - name: Rutas legales como archivos reales (HTTP 200)
+        # App Store Connect exige URLs públicas para los términos y la privacidad,
+        # y valida el estado HTTP. Con /terms/index.html y /privacy/index.html
+        # Pages responde 200 en vez del 404 del fallback.
+        run: |
+          for r in terms privacy waitlist; do
+            mkdir -p "dist/$r"
+            cp dist/index.html "dist/$r/index.html"
+          done
 
       - uses: actions/configure-pages@v5
 
