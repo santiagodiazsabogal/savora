@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base CLARA global "Crema cálida" (Savora) — evita flashes entre pantallas.
+   El tema oscuro se activa con la clase .sv-dark en <html> (ver theme.ts). */
+html, body, #root {
+  background-color: #FFE7D0;
+  color: #2E1D14;
+  color-scheme: light;
+}
+
+/* El scroll vive en #root, NO en el documento. En iOS Safari el `overscroll-behavior`
+   sobre el body NO frena el rebote del documento (revelaba el fondo crema al "pasarse").
+   Con un contenedor de scroll anidado fijo al viewport, iOS sí lo respeta y el fondo
+   animado (fixed) cubre siempre la pantalla. */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#root {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+html.sv-dark, html.sv-dark body, html.sv-dark #root {
+  background-color: #07050A;
+  color: #FFFFFF;
+  color-scheme: dark;
+}

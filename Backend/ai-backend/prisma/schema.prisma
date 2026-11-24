@@ -1,0 +1,740 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model User {
+  email             String         @unique
+  password          String
+  name              String?
+  createdAt         DateTime       @default(now())
+  isVerified        Boolean        @default(false)
+  plan              Plan           @default(FREE)
+  requestsUsed      Int            @default(0)
+  updatedAt         DateTime       @updatedAt
+  verificationToken String?
+  id                Int            @id @default(autoincrement())
+  allergies         String?
+  cookingLevel      String?
+  dietType          String?
+  goal              String?
+  nutritionGoal     String?        // objetivo de la tarjeta de calorías: healthy|cut|bulk|balance
+  weightKg          Float?         // datos corporales OPCIONALES para personalizar la meta
+  heightCm          Float?
+  birthYear         Int?
+  sex               String?        // 'male' | 'female' (solo para la fórmula BMR)
+  activityLevel     String?        // sedentary|light|moderate|high
+  mealsPerWeek      Int?           // cuántos platos/semana quiere cocinar en Savora
+  cookingStreak     Int            @default(0)
+  lastCookedAt      DateTime?
+  timeAvailable     String?
+  pushToken         String?        // Expo push token (app móvil)
+  lessonsCompleted  Int            @default(0)
+  coursesCompleted  Int            @default(0)
+  specializations   String[]       @default([])
+  nivel             Int            @default(1)   // gamificación cursos IA (XP/nivel)
+  xpTotal           Int            @default(0)
+  duelsWon          Int            @default(0)   // duelos ganados (insignias de duelo)
+  duelsPlayed       Int            @default(0)   // duelos jugados (participación)
+  likesReceivedTotal Int           @default(0)   // likes recibidos DE POR VIDA (insignias; los posts se purgan a los 15 días)
+  username          String?        @unique       // @handle único para perfiles públicos / amigos
+  resetToken        String?        @unique       // recuperación de contraseña (token de un solo uso)
+  resetTokenExpiry  DateTime?                     // caducidad del token de reset
+  deletedAt         DateTime?                     // cuenta eliminada (soft delete + anonimización irreversible)
+  isAdmin           Boolean        @default(false) // acceso al panel de moderación
+  bannedAt          DateTime?                     // usuario baneado por moderación (no puede iniciar sesión)
+  banReason         String?                       // motivo del baneo (interno)
+  planExpiresAt     DateTime?                     // caducidad del plan de pago (IAP/RevenueCat)
+  aiUsageDate       DateTime?                     // día del último uso de IA (tope diario PRO/CHEF)
+  aiUsageCount      Int            @default(0)    // generaciones IA hechas hoy (se resetea por día)
+  pantry            Json?                          // string[] — despensa del usuario (PantryCheck / My Kitchen)
+  utensils          Json?                          // string[] — utensilios (cajón de My Kitchen)
+  zipCode           String?                        // ZIP US para precios reales de Kroger (opcional, fallback si no eligió tienda)
+  krogerStoreId     String?                        // locationId de la tienda Kroger elegida (selector del mercado)
+  krogerStoreName   String?                        // nombre visible de esa tienda ("Kroger — Cincinnati, OH")
+  termsAcceptedAt   DateTime?                      // cuándo aceptó Términos+Privacidad (registro; requisito UGC)
+  conversations     Conversation[]
+  recipes           Recipe[]
+  folders           RecipeFolder[]
+  battlePlayers     CookBattlePlayer[]
+  userCourses       UserCourse[]
+  mealPlan          MealPlanEntry[]
+  socialPosts       SocialPost[]
+  socialLikes       SocialLike[]
+  userStats         UserStats?
+  userMealDbCourses UserMealDbCourse[]
+  userMealDbLessons UserMealDbLesson[]
+  userMissions      UserMission[]
+  userBadges        UserBadge[]
+  clanMemberships   ClanMember[]
+  clanRequests      ClanRequest[]
+  clanMessages      ClanMessage[]
+  clanReactions     ClanMessageReaction[]
+  friendsRequested  Friendship[]          @relation("FriendRequester")
+  friendsReceived   Friendship[]          @relation("FriendAddressee")
+  reportsMade       Report[]              @relation("Reporter")
+  reportsAgainst    Report[]              @relation("Reported")
+  blocksMade        Block[]               @relation("Blocker")
+  blocksAgainst     Block[]               @relation("Blocked")
+  refreshTokens     RefreshToken[]
+  marketItems       MarketItem[]
+}
+
+// Lista de mercado (PRO/CHEF): ingredientes por comprar con precio estimado.
+// priceSource: 'kroger' (precio real de la tienda cercana) | 'ai' (estimado gpt-4.1-mini) | 'manual'.
+model MarketItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  quantity    String?  // texto libre ("2 lbs", "1 dozen")
+  note        String?  // nota opcional del usuario (p.ej. preferencia de marca "Oatly")
+  priceCents  Int?     // precio en centavos USD (null = sin precio)
+  priceSource String?  // 'ai' | 'manual' (el precio se estima con IA; 'kroger' quedó obsoleto)
+  imageUrl    String?  // OBSOLETO (quedó de la etapa Kroger): siempre null; el front pinta emoji por nombre
+  checked     Boolean  @default(false) // comprado
+  recipeTitle String?  // receta que lo originó (si vino del listado de sugerencias)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// Refresh tokens (rotables, revocables). El access token (JWT) es corto; el refresh es largo
+// y se guarda HASHEADO (sha256). Permite cerrar sesiones (logout/ban/borrado) y acortar el JWT.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    Int
+  tokenHash String    @unique // sha256 del token en claro (nunca se guarda el token en claro)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt]) // purga diaria deleteMany(expiresAt < now); tabla de mayor crecimiento
+}
+
+// Reporte de contenido/usuario para moderación (revisión posterior).
+model Report {
+  id             String   @id @default(uuid())
+  reporterId     Int
+  targetType     String   // 'POST' | 'USER'
+  postId         String?  // si targetType='POST'
+  reportedUserId Int      // dueño del post o usuario reportado
+  reason         String
+  status         String   @default("pending") // 'pending' | 'reviewed' | 'dismissed'
+  createdAt      DateTime @default(now())
+  reporter       User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User     @relation("Reported", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([reporterId])
+}
+
+// Bloqueo entre usuarios. blocker deja de ver/interactuar con blocked (y viceversa en el feed).
+model Block {
+  id        String   @id @default(uuid())
+  blockerId Int
+  blockedId Int
+  createdAt DateTime @default(now())
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+// Amistad entre dos usuarios (solicitud + estado). requester = quien la envía.
+model Friendship {
+  id          String   @id @default(uuid())
+  requesterId Int
+  addresseeId Int
+  status      String   @default("pending") // 'pending' | 'accepted'
+  createdAt   DateTime @default(now())
+  requester   User     @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+model Recipe {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  title          String
+  description    String?
+  tip            String?
+  ingredients    Json
+  tools          Json
+  steps          Json
+  stepTips       Json?         // un tip por paso, alineado por índice a steps (reemplaza el tip general)
+  nutrition      Json?         // { servings, calories, protein, carbs, fat } — POR PORCIÓN (estimado IA)
+  difficulty     String?
+  cookTime       Int?
+  dietType       String?
+  createdAt      DateTime      @default(now())
+  isFavorite     Boolean       @default(false)
+  folderId       Int?
+  isDailyRecipe  Boolean       @default(false)
+  dailyDate      DateTime?
+  mealTime       String?
+  globalRecipeId String?
+  cookedAt       DateTime?     // 1ª vez que se terminó el Modo Cocina → otorga XP una sola vez
+  conversation   Conversation?
+  folder         RecipeFolder? @relation(fields: [folderId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlanEntries MealPlanEntry[]
+  socialPosts    SocialPost[]
+
+  @@index([userId])
+  @@index([userId, isDailyRecipe, dailyDate])
+}
+
+model GlobalRecipe {
+  id          String   @id @default(uuid())
+  cacheKey    String   @unique
+  mealType    String
+  ingredients Json
+  cookTime    Int
+  timeBand    String
+  allergens   String[]
+  dietaryTags String[]
+  recipeData  Json
+  timesServed Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([cacheKey])
+}
+
+// Receta del día GLOBAL: una sola receta compartida por todos los usuarios
+// del mismo idioma, por franja horaria y día. Se genera una vez (el primer
+// usuario que la revela) y queda fija. `titleKey` es único por idioma para
+// garantizar que una receta del día NUNCA se repita (en ninguna franja ni día).
+model DailyRecipe {
+  id          String   @id @default(uuid())
+  dateKey     String   // YYYY-MM-DD
+  mealTime    String   // breakfast | lunch | dinner | snack | dessert | drink | cocktail | surprise
+  language    String   // 'es' | 'en'
+  title       String
+  titleKey    String   // título normalizado para dedup global
+  recipeData  Json     // { title, description, ingredients, tools, steps, difficulty, cookTime, tip }
+  timesServed Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([dateKey, mealTime, language]) // una global por franja/día/idioma
+  @@unique([language, titleKey])          // nunca repetir título en el idioma
+  @@index([language, createdAt])
+}
+
+model Conversation {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String?
+  createdAt DateTime  @default(now())
+  recipeId  Int?      @unique
+  recipe    Recipe?   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model RecipeFolder {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  recipes   Recipe[]
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, name])
+}
+
+// 🗓️ Planificador Semanal (PRO/CHEF). Un slot por (usuario, día, franja).
+// Empieza como plan ligero (título/desc sugeridos por IA o manual, SIN receta
+// completa). Al "Preparar" se genera la Recipe real y `recipeId` apunta a ella,
+// reutilizando favoritos/historial/cook mode. La generación del menú es 1 sola
+// llamada barata; la receta completa se genera bajo demanda al tocar el slot.
+model MealPlanEntry {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  date        DateTime // día normalizado a medianoche UTC (00:00)
+  mealTime    String   // 'breakfast' | 'lunch' | 'dinner'
+
+  // Plan ligero (lo que se ve en el muro antes de cocinar)
+  title       String
+  description String?
+  difficulty  String?  // 'easy' | 'medium' | 'hard'
+  cookTime    Int?
+
+  // Si ya se preparó → Recipe real generada
+  recipeId    Int?
+  source      String   @default("manual") // 'manual' | 'ai_weekly' | 'existing'
+  // Snapshot de las preferencias nutricionales del sheet al generar la semana
+  // ({ calorieGoal, nutritionGoals, servings }) → el "Prepare" las respeta al
+  // generar la Recipe completa. NULL en slots manuales/viejos.
+  prefs       Json?
+  createdAt   DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date, mealTime]) // 1 receta por franja/día
+  @@index([userId, date])
+}
+
+enum Plan {
+  FREE
+  PRO
+  CHEF
+}
+
+// Caché persistente de audio TTS. La clave es un hash del texto+voz+idioma,
+// así un mismo paso de receta solo se sintetiza (y paga) una vez en toda la app.
+// TtsCache eliminado del schema (2026-07-05): el audio TTS ya no se persiste — caché
+// efímero en memoria en tts.service. La tabla sigue en la DB hasta ejecutar el DROP
+// pendiente (prisma/manual/drop_tts_cache.sql).
+
+// =========================
+// 🍳 DUELO DE COCINA (matchmaking multijugador)
+// =========================
+model CookBattle {
+  id               String   @id @default(uuid())
+  // 'my_ingredients' (empareja por ingredientes del fridge) | 'chef_choice' (receta elegida por la IA)
+  mode             String
+  // waiting | cooking | judging | finished | cancelled
+  status           String   @default("waiting")
+  // 'public' (matchmaking rápido) | 'private' (sala con código, inicio controlado por el host)
+  visibility       String   @default("public")
+  joinCode         String?  @unique // código de invitación (solo en partidas privadas)
+  mealTime         String?
+  language         String   @default("es")
+
+  // Receta compartida por todos los jugadores de la sala
+  recipeTitle      String?
+  recipeData       Json?    // { title, description, ingredients, tools, steps, difficulty, cookTime, tip }
+  recipeOptionId   String?  // chef_choice: id de la receta del catálogo elegida (para emparejar)
+  timeLimitSec     Int?     // límite de tiempo para cocinar
+
+  // Tiempos del ciclo de vida
+  lobbyExpiresAt   DateTime?  // fin del lobby (2 min desde la creación)
+  cookingStartedAt DateTime?
+  cookingEndsAt    DateTime?
+
+  // Resultado
+  winnerUserId     Int?
+  judgeData        Json?      // { ranking: [{ userId, rank, score, comment }], summary }
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  players          CookBattlePlayer[]
+
+  @@index([mode, status])
+}
+
+model CookBattlePlayer {
+  id          String   @id @default(uuid())
+  battleId    String
+  userId      Int
+  isReady     Boolean  @default(false)
+  isHost      Boolean  @default(false)
+  ingredients Json?    // modo my_ingredients: ingredientes detectados de este jugador
+  team        Int?     // modo teams: 0 | 1 (null en otros modos)
+  courseLabel String?  // buffet/teams: curso asignado (main, salad, dessert, ...)
+  recipeData  Json?    // buffet/teams: receta individual asignada a este jugador
+  recipeTitle String?  // buffet/teams: título de la receta individual
+  photoSubmitted Boolean @default(false) // registro de que envió foto (sobrevive al borrado de la URL)
+  photoUrl    String?  // foto del resultado en Supabase Storage (se borra del bucket y se limpia tras juzgar)
+  score       Int?     // puntaje asignado por el juez IA
+  rank        Int?     // posición final (1 = ganador)
+  judgeComment String?
+  joinedAt    DateTime @default(now())
+
+  battle      CookBattle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([battleId, userId])
+  @@index([userId])
+  @@index([battleId])
+}
+
+// Catálogo compartido de recetas para el modo "Receta del chef".
+// Todos los usuarios ven las mismas opciones y se emparejan por la que eligen.
+model BattleRecipeOption {
+  id         String   @id @default(uuid())
+  language   String   // 'es' | 'en'
+  dateKey    String   @default("") // YYYY-MM-DD — catálogo diario compartido
+  mealTime   String   // breakfast | lunch | dinner | snack | dessert | drink
+  recipeData Json     // RecipeData completo
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([language, dateKey])
+}
+
+// =========================
+// 🎓 CURSOS DE COCINA (currículo curado, NO IA)
+// =========================
+model CourseCatalog {
+  id               String   @id @default(uuid())
+  slug             String   @unique
+  title            String
+  subtitle         String?
+  emoji            String
+  cookingLevel     String   // 'beginner' | 'intermediate' | 'advanced'
+  category         String   // 'italian' | 'asian' | 'latin' | 'pastry' | 'grilling' | 'healthy' | 'general'
+  isBase           Boolean  @default(true)
+  unlockAfterCount Int      @default(0)
+  lessons          CourseCatalogLesson[]
+  enrollments      UserCourse[]
+  createdAt        DateTime @default(now())
+
+  @@index([cookingLevel])
+  @@index([isBase, unlockAfterCount])
+}
+
+model CourseCatalogLesson {
+  id               String   @id @default(uuid())
+  catalogId        String
+  order            Int
+  title            String
+  description      String?
+  difficulty       String   // 'easy' | 'medium' | 'hard'
+  hasPrereqWarning Boolean  @default(false)
+  prereqMessage    String?
+  catalog          CourseCatalog    @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  userLessons      UserCourseLesson[]
+
+  @@index([catalogId])
+  @@index([catalogId, order])
+}
+
+model UserCourse {
+  id          String    @id @default(uuid())
+  userId      Int
+  catalogId   String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  catalog     CourseCatalog @relation(fields: [catalogId], references: [id])
+  lessons     UserCourseLesson[]
+
+  @@unique([userId, catalogId])
+  @@index([userId])
+  @@index([userId, completedAt])
+}
+
+model UserCourseLesson {
+  id              String    @id @default(uuid())
+  userCourseId    String
+  catalogLessonId String
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  reminderSent    Boolean   @default(false)
+  recipeData      Json?
+  userCourse      UserCourse          @relation(fields: [userCourseId], references: [id], onDelete: Cascade)
+  catalogLesson   CourseCatalogLesson @relation(fields: [catalogLessonId], references: [id])
+
+  @@unique([userCourseId, catalogLessonId])
+  @@index([scheduledAt, reminderSent])
+  @@index([userCourseId])
+}
+
+// =========================
+// 🌐 RED SOCIAL (feed de publicaciones + likes)
+// =========================
+// Disponible para los 3 planes (FREE/PRO/CHEF). NO gasta el límite FREE.
+// Una publicación es una foto libre (PHOTO) o una receta propia compartida
+// (RECIPE, con `recipeId` apuntando a la Recipe del usuario). La imagen vive en
+// Supabase Storage; aquí solo guardamos la URL pública.
+model SocialPost {
+  id        String   @id @default(uuid())
+  userId    Int
+  type      String   // 'PHOTO' | 'RECIPE'
+  imageUrl  String
+  caption   String?
+  recipeId  Int?     // solo type='RECIPE'
+  likeCount Int      @default(0) // contador denormalizado para el Top del día
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  likes  SocialLike[]
+
+  @@index([createdAt])
+  @@index([type, likeCount])
+  @@index([userId])
+}
+
+// Un usuario solo puede darle un corazón a cada post (unique).
+model SocialLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+// =========================
+// 🎓 CURSOS DE COCINA CON IA (TheMealDB) + gamificación (XP/nivel, badges, misiones)
+// Las tablas ya existen en la DB. Solo CHEF accede (gate en courses-ai).
+// =========================
+
+// Syllabus de un curso (generado por IA a partir de una receta de TheMealDB), cacheado.
+model MealDbCourse {
+  idMeal       String   @id
+  strMeal      String
+  strArea      String
+  strCategory  String
+  thumbnailUrl String
+  nivelMinimo  Int
+  lecciones    Json     // ES (base): [{ numero, titulo, descripcion, tecnica, pasos }]
+  leccionesEn  Json?    // EN: misma estructura, traducción cacheada (lazy)
+  creadoEn     DateTime @default(now())
+
+  userCourses  UserMealDbCourse[]
+  userLessons  UserMealDbLesson[]
+}
+
+// Cursos TheMealDB completados por usuario
+model UserMealDbCourse {
+  id              String       @id @default(uuid())
+  userId          Int
+  idMeal          String
+  fechaCompletado DateTime     @default(now())
+  xpGanado        Int
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          MealDbCourse @relation(fields: [idMeal], references: [idMeal])
+
+  @@unique([userId, idMeal])
+  @@index([userId])
+}
+
+// Lecciones TheMealDB completadas por usuario
+model UserMealDbLesson {
+  id              String       @id @default(uuid())
+  userId          Int
+  idMeal          String
+  numeroLeccion   Int
+  fechaCompletado DateTime     @default(now())
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          MealDbCourse @relation(fields: [idMeal], references: [idMeal])
+
+  @@unique([userId, idMeal, numeroLeccion])
+  @@index([userId])
+}
+
+// Estadísticas extendidas del usuario (arrays y mapas de XP)
+model UserStats {
+  userId              Int    @id
+  diasActivosMes      Int    @default(0)
+  tecnicasDominadas   Json   @default("[]")
+  cocinasExploradas   Json   @default("[]")
+  categoriasDominadas Json   @default("[]")
+  ingredientesUsados  Json   @default("[]")
+  xpPorArea           Json   @default("{}")
+  user                User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Pool diario compartido de misiones (1 llamada GPT para toda la app)
+model MissionPool {
+  id           String        @id @default(uuid())
+  fecha        DateTime      @db.Date
+  dificultad   String        // 'facil' | 'media' | 'dificil'
+  titulo       String
+  descripcion  String
+  xpRecompensa Int
+  condicion    Json          // { tipo, cantidad, categoria?, area? }
+  nivelMinimo  Int           @default(1)
+  nivelMaximo  Int           @default(100)
+  creadoEn     DateTime      @default(now())
+  userMissions UserMission[]
+
+  @@unique([fecha, titulo]) // 1 plantilla por (semana, título) → evita duplicados en el pool
+  @@index([fecha])
+}
+
+// Misiones asignadas a cada usuario del pool
+model UserMission {
+  id           String      @id @default(uuid())
+  userId       Int
+  missionId    String
+  completada   Boolean     @default(false)
+  expirada     Boolean     @default(false)
+  asignadaEn   DateTime    @default(now())
+  completadaEn DateTime?
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission      MissionPool @relation(fields: [missionId], references: [id])
+
+  @@unique([userId, missionId])
+  @@index([userId, expirada])
+}
+
+// Catálogo de insignias (seed estático; se sincroniza desde BADGE_CATALOG en código)
+model Badge {
+  id            String      @id // 'primer_fuego', 'viajero', etc.
+  nombre        String
+  descripcion   String
+  progresoTotal Int
+  categoria     String      @default("general") // 'curso'|'duelo'|'receta'|'clan'|'general'
+  userBadges    UserBadge[]
+}
+
+// Progreso de insignias por usuario
+model UserBadge {
+  userId          Int
+  badgeId         String
+  progresoActual  Int       @default(0)
+  completada      Boolean   @default(false)
+  fechaCompletada DateTime?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge           Badge     @relation(fields: [badgeId], references: [id])
+
+  @@id([userId, badgeId])
+  @@index([userId])
+}
+
+// =========================
+// 👥 CLANES (gremios) — PRO/CHEF. Chat en tiempo real (gateway WebSocket /clans),
+// misiones colectivas con IA y XP de clan (aporta el XP de cursos de los miembros).
+// Tablas ya existentes en la DB.
+// =========================
+model Clan {
+  id                  String   @id @default(uuid())
+  nombre              String   @unique
+  descripcion         String
+  tipoAcceso          String   // 'abierto' | 'cerrado'
+  especializacion     String?  // strArea de TheMealDB
+  avatarUrl           String?
+  xpColectivoSemanal  Int      @default(0)
+  xpColectivoTotal    Int      @default(0)
+  creadoPor           Int
+  creadoEn            DateTime @default(now())
+
+  miembros    ClanMember[]
+  solicitudes ClanRequest[]
+  misiones    ClanMission[]
+  mensajes    ClanMessage[]
+
+  @@index([xpColectivoSemanal, xpColectivoTotal]) // browse Top + rank semanal (count > X)
+  @@index([xpColectivoTotal]) // rank global de clan en badges (count > X), página caliente
+}
+
+model ClanMember {
+  clanId           String
+  userId           Int
+  rol              String   // 'lider' | 'co_lider' | 'miembro'
+  xpAportadoSemana Int      @default(0)
+  fechaIngreso     DateTime @default(now())
+  ultimaActividad  DateTime @default(now())
+  clan             Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([clanId, userId])
+  @@index([clanId])
+  @@index([userId])
+}
+
+model ClanRequest {
+  id       String   @id @default(uuid())
+  clanId   String
+  userId   Int
+  estado   String   @default("pendiente") // 'pendiente' | 'aceptada' | 'rechazada'
+  creadoEn DateTime @default(now())
+  clan     Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clanId, userId])
+  @@index([clanId, estado])
+}
+
+model ClanMission {
+  id                     String   @id @default(uuid())
+  clanId                 String
+  fecha                  DateTime @db.Date
+  dificultad             String
+  titulo                 String
+  descripcion            String
+  xpRecompensaPorMiembro Int
+  condicion              Json
+  progresoActual         Int      @default(0)
+  completada             Boolean  @default(false)
+  expirada               Boolean  @default(false)
+  clan                   Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+
+  @@unique([clanId, fecha, titulo]) // 1 misión por (clan, semana, título) → evita duplicados
+  @@index([clanId, fecha])
+}
+
+model ClanMessage {
+  id           String   @id @default(uuid())
+  clanId       String
+  userId       Int?     // null = mensaje automático del sistema
+  contenido    String
+  imagenUrl    String?  // URL pública (Supabase Storage) de una imagen adjunta; mensajes viejos pueden traer data-URL base64 legacy
+  esAutomatico Boolean  @default(false)
+  enviadoEn    DateTime @default(now())
+  replyToId    String?  // mensaje al que responde (cita)
+  clan         Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  replyTo      ClanMessage?  @relation("ClanMessageReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      ClanMessage[] @relation("ClanMessageReply")
+  reacciones   ClanMessageReaction[]
+
+  @@index([clanId, enviadoEn])
+}
+
+model ClanMessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    Int
+  emoji     String
+  creadoEn  DateTime @default(now())
+  message   ClanMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+// 📋 Waitlist de pre-lanzamiento (savoracook.com/waitlist) — SIN auth, tabla propia
+// separada de User. La POSICIÓN no se guarda: se calcula on-the-fly con
+// ORDER BY referralCount DESC, createdAt ASC (así los referidos "suben" sin tener
+// que reordenar filas). Incentivos: Top 100 = 6 meses Pro, Top 500 = 3 meses, resto 30 días.
+model WaitlistEntry {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  referralCode  String    @unique // código propio para compartir (8 chars, crypto)
+  referredBy    String?   // referralCode de quien lo invitó
+  referralCount Int       @default(0) // cuántos registros trajo
+  createdAt     DateTime  @default(now())
+  confirmedAt   DateTime? // reservado para doble opt-in (v1 no lo exige)
+  unsubscribed  Boolean   @default(false) // corta los emails de secuencia, no borra la fila
+
+  @@index([referralCount, createdAt]) // la query de ranking/posición
+}

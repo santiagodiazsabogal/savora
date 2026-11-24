@@ -1,0 +1,458 @@
+/* =========================================================
+   Savora UI — Design System (glassmorphism)
+   Prefijo sv- para no chocar con Tailwind ni el CSS actual.
+   Tema oscuro activo por defecto; .sv-light queda listo para el modo claro.
+   ========================================================= */
+
+/* Tokens globales — TEMA CLARO "Crema cálida" (por defecto en toda la app).
+   El tema oscuro vive en .sv-dark (se aplica la clase en <html> con el toggle). */
+:root {
+  --sv-primary: #F0824F;          /* naranja pastel cálido (más ameno) */
+  --sv-primary-strong: #E16B3C;   /* fin del gradiente del botón (suave) */
+  --sv-primary-glow: rgba(240, 130, 79, 0.26);
+  --sv-primary-soft: #FBD8C4;     /* relleno OPACO del estado seleccionado (no translúcido) */
+  --sv-secondary: #8B5CF6;
+  --sv-secondary-glow: rgba(139, 92, 246, 0.30);
+  --sv-clan-accent: #7C3AED;       /* morado de clanes legible sobre la crema clara */
+  --sv-success: #10B981;
+  --sv-success-glow: rgba(16, 185, 129, 0.30);
+  --sv-warning: #E8890C;
+  --sv-danger: #EF4444;
+  --sv-danger-glow: rgba(239, 68, 68, 0.30);
+
+  --sv-bg-base: #FFE7D0;          /* crema cálida (overscroll y degradados de barras) */
+  /* Superficies en beige cálido (no blanco puro) para que los cards no se vean
+     lavados/blancos y armonicen con la crema/naranja del tema. */
+  --sv-bg-surface: rgba(243, 225, 209, 0.92);
+  --sv-glass-solid-bg: rgba(245, 230, 216, 0.98); /* variante sin blur para listas (claro) */
+  /* Tarjetas del roadmap de cursos: un beige más tostado que la crema del fondo para
+     que NO se fundan con él en el tema claro (el glass-solid quedaba casi invisible). */
+  --sv-roadmap-card-bg: #EACFB2;
+  --sv-bg-surface-hover: rgba(249, 236, 225, 0.97);
+  --sv-bg-input: rgba(238, 220, 203, 0.85);
+  --sv-bg-elevated: #FBEFE4;
+  /* Pastilla de navegación inferior: color SÓLIDO (opaco, sin blur) — tostado medio que
+     contrasta tanto sobre la crema como sobre el botón naranja, sin sobrestimular. */
+  --sv-tabbar-bg: #E7CDAF;
+
+  --sv-text-main: #2A1A11;
+  --sv-text-muted: #5C4231;       /* más oscuro: labels/chips legibles sobre la crema */
+  --sv-text-dim: #836552;         /* más oscuro que antes (#A98D7B) para no perder contraste */
+
+  --sv-border-light: rgba(70, 40, 20, 0.20);   /* contornos de botones/cards más visibles */
+  --sv-border-strong: rgba(70, 40, 20, 0.32);
+
+  --sv-shadow-glass: 0 10px 28px rgba(95, 58, 30, 0.18);
+  --sv-shadow-glass-hover: 0 18px 44px rgba(95, 58, 30, 0.26);
+
+  /* utensilios flotantes del fondo (visibles sobre el degradado blanco→naranja) */
+  --sv-util-color: #BE6A22;
+  --sv-util-opacity: 0.30;
+
+  /* Borde de la tarjeta de calorías del dashboard: azul OSCURO sobre la crema clara
+     (en oscuro se invierte a azul claro — ver .sv-dark). */
+  --sv-calories-accent: rgba(30, 64, 175, 0.85);
+
+  /* Dataviz nutrición (validados con CVD + contraste sobre la superficie crema):
+     los números van SIEMPRE en tokens de texto; el color solo identifica la serie. */
+  --viz-kcal: #D95926;
+  --viz-protein: #008300;
+  --viz-carbs: #2A78D6;
+  --viz-fat: #C98500;
+  --viz-track: rgba(70, 40, 20, 0.14);
+
+  /* Color de las insignias por categoría (icono del logro). Validados ≥3:1 sobre la
+     tarjeta crema (CVD-safe). El fondo de la medalla usa una mezcla tenue del mismo color. */
+  --badge-receta: #C85A28;
+  --badge-duelo: #DC2626;
+  --badge-clan: #7C3AED;
+  --badge-social: #2563EB;
+  --badge-curso: #059669;
+  --badge-general: #B06806;
+
+  --sv-radius-sm: 14px;
+  --sv-radius-md: 24px;
+  --sv-radius-lg: 32px;
+
+  --sv-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  color-scheme: light;
+}
+
+/* TEMA OSCURO — se activa con la clase .sv-dark en <html> */
+.sv-dark {
+  --sv-primary: #FF5E1A;
+  --sv-primary-strong: #E04800;
+  --sv-primary-glow: rgba(255, 94, 26, 0.5);
+  --sv-primary-soft: #3A2014;     /* relleno OPACO del estado seleccionado (oscuro) */
+  --sv-secondary: #8B5CF6;
+  --sv-secondary-glow: rgba(139, 92, 246, 0.4);
+  --sv-clan-accent: #C4B5FD;       /* en oscuro se mantiene el lavanda claro de siempre */
+  --sv-success: #10B981;
+  --sv-success-glow: rgba(16, 185, 129, 0.4);
+  --sv-warning: #F59E0B;
+  --sv-danger: #EF4444;
+  --sv-danger-glow: rgba(239, 68, 68, 0.4);
+
+  --sv-bg-base: #07050A;
+  --sv-bg-surface: rgba(25, 25, 35, 0.6);
+  --sv-glass-solid-bg: rgba(26, 26, 38, 0.96); /* variante sin blur para listas (oscuro) */
+  /* En oscuro el glass-solid ya contrasta bien con el fondo → reusar tal cual */
+  --sv-roadmap-card-bg: rgba(26, 26, 38, 0.96);
+  --sv-bg-surface-hover: rgba(35, 35, 45, 0.8);
+  --sv-bg-input: rgba(0, 0, 0, 0.5);
+  --sv-bg-elevated: #14111C;
+  /* Pastilla sólida oscura — se distingue del fondo casi negro de la app */
+  --sv-tabbar-bg: #1F1F2B;
+
+  --sv-text-main: #FFFFFF;
+  --sv-text-muted: #A1A1AA;
+  --sv-text-dim: #71717A;
+
+  --sv-border-light: rgba(255, 255, 255, 0.08);
+  --sv-border-strong: rgba(255, 255, 255, 0.18);
+
+  --sv-shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --sv-shadow-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.6);
+
+  --sv-util-color: #FFB088;
+  --sv-util-opacity: 0.06;
+
+  /* Borde de la tarjeta de calorías: azul CLARO sobre el fondo oscuro */
+  --sv-calories-accent: rgba(147, 197, 253, 0.85);
+
+  /* Dataviz nutrición — mismos matices re-escalonados para la superficie oscura */
+  --viz-carbs: #3987E5;
+  --viz-track: rgba(255, 255, 255, 0.10);
+
+  /* Insignias por categoría — versiones más claras para contrastar sobre el fondo oscuro */
+  --badge-receta: #FF7A45;
+  --badge-duelo: #F87171;
+  --badge-clan: #C4B5FD;
+  --badge-social: #60A5FA;
+  --badge-curso: #34D399;
+  --badge-general: #FBBF24;
+
+  color-scheme: dark;
+}
+
+.sv-screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  /* Transparente: el AnimatedBackground global (App.tsx) provee el #07050A + orbes + utensilios.
+     Antes era var(--sv-bg-base) opaco y tapaba el fondo animado en cada página. */
+  background: transparent;
+  color: var(--sv-text-main);
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tipografía pixel-art (mockup retro) — scope por página, no global.
+   El descendiente * cubre elementos con font-family propio (no solo los que heredan). */
+.sv-pixel-font,
+.sv-pixel-font * {
+  font-family: 'Pixelify Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+/* Pixelify Sans viene muy condensada: aire entre letras y palabras.
+   Solo en la raíz (se HEREDA) para no pisar los tracking-* de Tailwind en labels. */
+.sv-pixel-font {
+  letter-spacing: 0.05em;
+  word-spacing: 0.18em;
+}
+
+/* La capa de contenido va por encima de los orbes decorativos */
+.sv-content { position: relative; z-index: 1; }
+
+/* --- Orbes ambientales --- */
+.sv-orbs { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.sv-orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.4; will-change: transform, opacity; }
+.sv-dark .sv-orb { opacity: 0.5; }
+/* Colores por defecto (tema CLARO): tonos cálidos suaves (acordes al blanco→naranja) */
+.sv-orb-1 { width: 300px; height: 300px; top: -100px; left: -100px; background: radial-gradient(circle, rgba(255, 158, 92, 0.22) 0%, transparent 70%); animation: svDrift 15s infinite alternate ease-in-out; }
+.sv-orb-2 { width: 350px; height: 350px; bottom: 8%; right: -150px; background: radial-gradient(circle, rgba(255, 196, 130, 0.18) 0%, transparent 70%); animation: svDrift 15s infinite alternate ease-in-out -5s; }
+.sv-orb-3 { width: 250px; height: 250px; top: 42%; left: 40%; background: radial-gradient(circle, rgba(255, 178, 120, 0.16) 0%, transparent 70%); animation: svPulseOrb 8s infinite alternate ease-in-out; }
+
+/* En OSCURO, los orbes de página vuelven a naranja/morado/ámbar */
+.sv-dark .sv-orb-1 { background: radial-gradient(circle, rgba(255, 94, 26, 0.3) 0%, transparent 70%); }
+.sv-dark .sv-orb-2 { background: radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, transparent 70%); }
+.sv-dark .sv-orb-3 { background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%); }
+
+/* Solo translate/opacity (sin scale): animar scale sobre un elemento con blur(60px)
+   re-rasteriza el desenfoque CADA frame (carísimo, quema batería en móvil). Translate y
+   opacity solo componen una capa ya rasterizada → mismo look, fracción del costo. */
+@keyframes svDrift {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(30px, 40px); }
+  100% { transform: translate(-20px, 20px); }
+}
+@keyframes svPulseOrb {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+/* Respeta la preferencia de movimiento reducido: orbes estáticos (perf + batería). */
+@media (prefers-reduced-motion: reduce) {
+  .sv-orb { animation: none; }
+}
+
+/* --- Panel de vidrio --- */
+.sv-glass {
+  background: var(--sv-bg-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--sv-border-light);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-glass);
+  transition: transform 0.4s var(--sv-ease-spring), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+}
+/* Variante SIN backdrop-filter (fondo casi opaco) para tarjetas dentro de listas largas
+   que scrollean (feed, recetas guardadas, logros, cursos, amigos…). Animar el scroll con
+   muchas cards de vidrio re-difumina el fondo cada frame → jank en móvil. Esta variante
+   se ve casi idéntica (la superficie ya era ~92% opaca en claro) sin ese costo. El resto
+   de la app conserva el vidrio real. Mismo borde/sombra/radio que .sv-glass. */
+.sv-glass-solid {
+  background: var(--sv-glass-solid-bg);
+  border: 1px solid var(--sv-border-light);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-glass);
+  transition: transform 0.4s var(--sv-ease-spring), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+}
+.sv-glass-hover:hover {
+  border-color: var(--sv-border-strong);
+  background: var(--sv-bg-surface-hover);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: var(--sv-shadow-glass-hover);
+}
+
+/* --- Botones --- */
+.sv-btn {
+  border: none; outline: none; cursor: pointer; font-family: inherit; font-weight: 700;
+  border-radius: var(--sv-radius-sm); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.3s var(--sv-ease-spring); position: relative; overflow: hidden;
+}
+.sv-btn:active { transform: scale(0.92); }
+.sv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sv-btn-primary { background: linear-gradient(120deg, #FB7A33, #EF5F18 36%, #FFA34A 64%, #FB7A33); background-size: 220% 220%; animation: svBtnShift 5.5s ease infinite; color: #fff; box-shadow: 0 8px 24px rgba(240, 110, 40, 0.42); }
+.sv-btn-primary:hover:not(:disabled) { filter: brightness(1.1) saturate(1.1); box-shadow: 0 10px 30px var(--sv-primary-glow); transform: translateY(-3px) scale(1.02); }
+
+/* En OSCURO: botón naranja VIBRANTE y con brillo (vivo y animado), sin lavarse */
+.sv-dark .sv-btn-primary { background: linear-gradient(120deg, #FF6A22, #E04800 36%, #FF8C42 64%, #FF6A22); animation: svBtnShift 5.5s ease infinite; box-shadow: 0 8px 26px rgba(255, 94, 26, 0.48); }
+.sv-dark .sv-btn-primary:hover:not(:disabled) { box-shadow: 0 12px 34px rgba(255, 110, 40, 0.58); }
+
+.sv-btn-ai { background: linear-gradient(120deg, var(--sv-secondary), #6D28D9 32%, #C4B5FD 62%, var(--sv-secondary)); background-size: 220% 220%; animation: svBtnShift 7s ease infinite; color: #fff; box-shadow: 0 6px 20px var(--sv-secondary-glow); }
+.sv-btn-ai:hover:not(:disabled) { filter: brightness(1.1) saturate(1.1); box-shadow: 0 10px 30px var(--sv-secondary-glow); transform: translateY(-3px) scale(1.02); }
+/* En OSCURO el botón morado (Duelo) también vibrante */
+.sv-dark .sv-btn-ai { background: linear-gradient(120deg, #9B6BFF, #6D28D9 36%, #B79BFF 64%, #9B6BFF); animation: svBtnShift 5.5s ease infinite; box-shadow: 0 8px 26px rgba(139, 92, 246, 0.45); }
+
+.sv-btn-success { background: linear-gradient(135deg, var(--sv-success), #059669); color: #fff; box-shadow: 0 6px 20px var(--sv-success-glow); }
+.sv-btn-danger { background: linear-gradient(135deg, var(--sv-danger), #B91C1C); color: #fff; box-shadow: 0 6px 20px var(--sv-danger-glow); }
+
+.sv-btn-glass { background: var(--sv-bg-surface); color: var(--sv-text-main); border: 1px solid var(--sv-border-light); backdrop-filter: blur(10px); }
+.sv-btn-glass:hover:not(:disabled) { background: var(--sv-bg-surface-hover); border-color: var(--sv-border-strong); transform: translateY(-2px); box-shadow: var(--sv-shadow-glass); }
+.sv-btn-glass.sv-active { background: var(--sv-primary-glow); border-color: var(--sv-primary); color: #fff; font-weight: 800; }
+
+/* --- Inputs --- */
+.sv-input {
+  width: 100%; background: var(--sv-bg-input); border: 1px solid var(--sv-border-strong); color: var(--sv-text-main);
+  padding: 15px 16px 15px 44px; border-radius: var(--sv-radius-sm); font-size: 15px; font-family: inherit;
+  transition: all 0.3s var(--sv-ease-spring);
+}
+.sv-input::placeholder { color: var(--sv-text-dim); }
+.sv-input:focus { border-color: var(--sv-primary); outline: none; box-shadow: 0 0 0 4px var(--sv-primary-glow); background: var(--sv-bg-surface); }
+
+/* --- Badges --- */
+.sv-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; }
+.sv-badge-ai { background: rgba(139, 92, 246, 0.12); color: #D8B4FE; border: 1px solid rgba(139, 92, 246, 0.3); }
+.sv-badge-primary { background: rgba(255, 94, 26, 0.12); color: var(--sv-primary); border: 1px solid rgba(255, 94, 26, 0.3); }
+.sv-badge-gold { background: rgba(245, 158, 11, 0.12); color: var(--sv-warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+.sv-badge-glass { background: var(--sv-bg-input); color: var(--sv-text-muted); border: 1px solid var(--sv-border-light); }
+
+/* --- Items de menú (dropdown) --- */
+.sv-menu-item { color: var(--sv-text-main); background: transparent; }
+.sv-menu-item:hover { background: rgba(255, 94, 26, 0.1); color: var(--sv-primary); }
+.sv-menu-item-danger { background: transparent; }
+.sv-menu-item-danger:hover { background: rgba(239, 68, 68, 0.12); }
+
+/* --- Texto / gradientes --- */
+.sv-muted { color: var(--sv-text-muted); }
+.sv-dim { color: var(--sv-text-dim); }
+.sv-text-gradient-primary {
+  background: linear-gradient(to right, #FF8B54, var(--sv-primary), #FF3300, #FF8B54);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  background-size: 200% auto; animation: svTextShine 3s linear infinite;
+}
+.sv-text-gradient-ai {
+  background: linear-gradient(135deg, #D8B4FE, #8B5CF6, #6D28D9, #D8B4FE);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  background-size: 200% auto; animation: svTextShine 3s linear infinite;
+}
+@keyframes svTextShine { to { background-position: 200% center; } }
+
+/* Gradiente animado de los botones (naranja/durazno o morado en movimiento) */
+@keyframes svBtnShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Respeta la preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .sv-btn-primary, .sv-btn-ai { animation: none; }
+}
+
+/* --- Animaciones de entrada --- */
+.sv-page { animation: svPageFadeIn 0.5s var(--sv-ease-spring) forwards; }
+@keyframes svPageFadeIn {
+  from { opacity: 0; transform: scale(0.97) translateY(15px); filter: blur(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* Bottom sheet: el panel entra deslizando desde abajo; el backdrop hace fade. */
+.sv-sheet-up { animation: svSheetUp 0.34s var(--sv-ease-spring) both; }
+@keyframes svSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sv-fade-in { animation: svFadeIn 0.25s ease-out both; }
+@keyframes svFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sv-sheet-up, .sv-fade-in { animation: none; }
+}
+
+/* Cuenta atrás de inicio de duelo (3·2·1·Ready·Go): "pop" elástico en cada paso. */
+.sv-count-pop { animation: svCountPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes svCountPop {
+  0% { opacity: 0; transform: scale(0.3); }
+  55% { opacity: 1; transform: scale(1.14); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Cuadro de Tip de receta. Texto legible en cada tema (ámbar oscuro en claro,
+   ámbar claro en oscuro) — antes el amarillo claro se perdía sobre el fondo claro. */
+.sv-tip {
+  background: rgba(234, 179, 8, 0.16);
+  border: 1px solid rgba(180, 120, 10, 0.38);
+  color: #8A5600;
+}
+html.sv-dark .sv-tip {
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #FCD34D;
+}
+
+/* Scroll horizontal con scrollbar oculto (selector de días, carruseles). */
+.sv-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.sv-scroll-x::-webkit-scrollbar { display: none; }
+
+/* Barra de tabs flotante (Inicio ↔ Social).
+   Tono claro: pastilla algo más oscura y translúcida (frosted) sobre la crema.
+   Tono oscuro: glass oscuro como el resto de superficies. */
+/* Pastilla de navegación: fondo SÓLIDO opaco (sin backdrop-filter) → se ve igual sobre
+   cualquier fondo (antes, translúcida + blur, se veía turbia sobre el botón naranja) y
+   ahorra el reraster del blur en cada frame (mejor rendimiento al hacer scroll). */
+.sv-tabbar {
+  background: var(--sv-tabbar-bg);
+  border: 1px solid var(--sv-border-strong);
+  box-shadow: 0 8px 22px rgba(95, 58, 30, 0.20);
+}
+html.sv-dark .sv-tabbar {
+  border-color: var(--sv-border-light);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
+}
+
+/* Fundido sutil en el borde inferior: el contenido (botones) se desvanece
+   suavemente al acercarse al fondo, en vez de cortarse seco bajo la pastilla.
+   Va por encima del contenido (z 40) y por debajo de la barra (z 50). */
+.sv-scroll-fade {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  z-index: 40;
+  pointer-events: none;
+  background: linear-gradient(to top, #FCAE6B 4%, rgba(252, 174, 107, 0.25) 35%, rgba(252, 174, 107, 0) 100%);
+}
+html.sv-dark .sv-scroll-fade {
+  background: linear-gradient(to top, #07050A 4%, rgba(7, 5, 10, 0.25) 35%, rgba(7, 5, 10, 0) 100%);
+}
+
+/* Slide direccional entre tabs (Inicio ↔ Social), estilo Instagram.
+   La dirección la decide BottomTabBar según el orden de las pestañas. */
+@keyframes svSlideFromRight {
+  from { opacity: 0.4; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes svSlideFromLeft {
+  from { opacity: 0.4; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.sv-slide-from-right { animation: svSlideFromRight 0.32s var(--sv-ease-spring) forwards; }
+.sv-slide-from-left  { animation: svSlideFromLeft 0.32s var(--sv-ease-spring) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .sv-slide-from-right, .sv-slide-from-left { animation: none; }
+}
+
+@keyframes svSlideUpFade { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+.sv-stagger-1 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.08s; }
+.sv-stagger-2 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.16s; }
+.sv-stagger-3 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.24s; }
+.sv-stagger-4 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.32s; }
+.sv-stagger-5 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.40s; }
+.sv-stagger-6 { animation: svSlideUpFade 0.6s var(--sv-ease-spring) both 0.48s; }
+
+/* ── Celebración de +XP / subida de nivel (resultado de duelo) ───────────── */
+
+/* Insignia central: entra con rebote elástico exagerado. */
+.sv-xp-badge-pop { animation: svXpBadgePop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes svXpBadgePop {
+  0% { opacity: 0; transform: scale(0.2) rotate(-25deg); }
+  60% { opacity: 1; transform: scale(1.18) rotate(8deg); }
+  80% { transform: scale(0.94) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* Rayos girando detrás de la insignia (glow de "logro desbloqueado"). */
+.sv-xp-rays { animation: svXpRaysSpin 9s linear infinite; }
+@keyframes svXpRaysSpin { to { transform: rotate(360deg); } }
+
+/* Pulso de resplandor detrás del número de nivel. */
+.sv-xp-glow-pulse { animation: svXpGlowPulse 1.8s ease-in-out infinite; }
+@keyframes svXpGlowPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+/* Texto "+XX XP" contando: entra deslizando hacia arriba con leve rebote. */
+.sv-xp-counter { animation: svXpCounterIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both 0.25s; }
+@keyframes svXpCounterIn {
+  0% { opacity: 0; transform: translateY(10px) scale(0.85); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Banner "¡Subiste de nivel!": entra un poco después del número, con shine. */
+.sv-level-banner { animation: svSlideUpFade 0.5s var(--sv-ease-spring) both 0.55s; }
+
+/* Confetti: cada partícula cae y gira; la posición/retraso/color se fijan inline
+   por partícula (ver BattleXpCelebration.tsx) para que no se vean sincronizadas. */
+.sv-confetti-piece {
+  position: absolute; top: -10%; width: 8px; height: 8px; border-radius: 2px;
+  animation-name: svConfettiFall; animation-timing-function: ease-in; animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+@keyframes svConfettiFall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--sv-confetti-x, 0px), 340px, 0) rotate(var(--sv-confetti-r, 540deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-xp-badge-pop, .sv-xp-rays, .sv-xp-glow-pulse, .sv-xp-counter, .sv-level-banner, .sv-confetti-piece {
+    animation: none;
+  }
+}
