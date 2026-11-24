@@ -1,0 +1,5 @@
+/* Fondo oscuro inmediato: evita el flash blanco antes de que monte el splash.
+   Vive en public/ (no inline en index.html) porque Vite 7 falla al construir
+   un <style> inline: "No matching HTML proxy module found". Al estar en public/
+   se copia tal cual y el navegador lo aplica antes de ejecutar el JS. */
+html, body, #root { background: #07050A; margin: 0; }

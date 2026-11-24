@@ -72,7 +72,7 @@ export default function App() {
   return (
     <AuthProvider>
       <SplashScreen />
-      <BrowserRouter>
+      <BrowserRouter basename={(import.meta as any).env?.BASE_URL ?? "/"}>
         <ScrollToTop />
         <AnimatedBackground />
         <div className="relative overflow-x-clip" style={{ zIndex: 1 }}>

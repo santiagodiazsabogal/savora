@@ -13,6 +13,9 @@ logger.error = (msg, options) => {
 }
 
 export default defineConfig({
+  // Base del sitio: en GitHub Pages la app se sirve bajo /<repo>/ (ej. /savora/).
+  // El workflow de Actions exporta VITE_BASE='/savora/'; en local queda '/' y no cambia nada.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react()],
   customLogger: logger,
   server: {

@@ -1,0 +1,63 @@
+# Blueprint de Render para el backend de Savora.
+#
+# Cómo usarlo:
+#   1. Entra a https://dashboard.render.com/blueprints y pulsa "New Blueprint Instance".
+#   2. Elige el repo santiagodiazsabogal/savora. Render lee este archivo.
+#   3. Rellena las variables marcadas como sync:false (las pide en pantalla; no viven aquí).
+#
+# ⚠️ Región: Oregon (us-west-2), la MISMA que la DB de Supabase. Es deliberado:
+#    co-ubicar backend y DB baja el round-trip de ~155 ms a ~2-5 ms. Es la palanca
+#    de velocidad #1 del proyecto. NO cambiar a otra región.
+
+services:
+  - type: web
+    name: savora-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: Backend/ai-backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render inyecta su propio PORT; main.ts ya lo respeta (process.env.PORT).
+
+      # ─── Secretos: se introducen en el dashboard, nunca en el repo ───
+      - key: DATABASE_URL          # Supabase SESSION pooler (5432) + ?connection_limit=5
+        sync: false
+      - key: JWT_SECRET            # cadena larga y aleatoria
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # ─── URLs públicas: ajustar al dominio real del frontend ───
+      - key: CORS_ORIGIN
+        sync: false              # ej. https://santiagodiazsabogal.github.io
+      - key: FRONTEND_URL
+        sync: false              # ej. https://santiagodiazsabogal.github.io/savora
+      - key: APP_URL
+        sync: false              # URL que Render asigna a este servicio
+
+      # ─── Opcionales ───
+      - key: EMAIL_ENABLED
+        value: "true"
+      - key: EMAIL_FROM
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: REVENUECAT_WEBHOOK_SECRET
+        sync: false
+      - key: REVENUECAT_API_KEY
+        sync: false
