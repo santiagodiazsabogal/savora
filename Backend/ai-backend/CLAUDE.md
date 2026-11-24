@@ -609,7 +609,7 @@ Integrado del trabajo del compañero (chat en tiempo real + misiones de clan + r
   (quitar el contenido + expulsar al usuario). Implementado con un panel de admin.
 - **Columnas nuevas** `User.isAdmin`, `User.bannedAt`, `User.banReason`
   (SQL en `prisma/manual/add_admin_moderation.sql`, que además **bootstrapea** la cuenta fundadora
-  como admin: `UPDATE User SET isAdmin=true WHERE email='diego131t@gmail.com'`).
+  como admin: `UPDATE User SET isAdmin=true WHERE email='<EMAIL_ADMIN>'`).
 - **Módulo `admin/`** (`AdminGuard` consulta `isAdmin` en DB, como `ChefGuard`): controller gateado por
   `JwtAuthGuard + AdminGuard`. Importa `PrismaModule`, `StorageModule`, `ClansModule`.
 - **Endpoints** (`/api/admin`, solo admins): `GET /reports?status=`, `GET /reports/count`,
